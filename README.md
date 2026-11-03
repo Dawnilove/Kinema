@@ -1,5 +1,5 @@
 <p align="center">
-  <a href="https://dawnilove.github.io/Kinema/"><img src="docs/banner.svg" alt="Kinema — 로봇을 조립하고, 학습시키고, 달성시키는 샌드박스"></a>
+  <a href="https://dawnilove.github.io/Kinema/"><img src="docs/kinema-banner.svg" alt="Kinema — 로봇을 조립하고, 학습시키고, 달성시키는 샌드박스"></a>
 </p>
 
 <h3 align="center">부품을 이어 붙여 로봇을 만들고, 강화학습으로 과제를 달성시키세요.</h3>
@@ -23,17 +23,17 @@
 > 이 저장소는 **배포용**이에요. 설치파일과 사용 설명만 있고, 소스 코드는 공개하지 않아요.
 
 <p align="center">
-  <img src="images/train.png" alt="학습 화면: 지금 정책이 한 판 하는 3D 재생, 성공률 곡선, 지표 카드">
+  <img src="images/kinema-train.png" alt="학습 화면: 지금 정책이 한 판 하는 3D 재생, 성공률 곡선, 지표 카드">
 </p>
 
 <table>
   <tr>
-    <td width="50%"><img src="images/project.png" alt="시작 화면"><br><sub><b>시작</b> · 틀 카드로 바로 시작하는 첫 화면</sub></td>
-    <td width="50%"><img src="images/assembly.png" alt="조립 화면"><br><sub><b>조립</b> · 부품 카드로 붙이고, 3D에서 작업 부위와 목표를 확인해요</sub></td>
+    <td width="50%"><img src="images/kinema-project.png" alt="시작 화면"><br><sub><b>시작</b> · 틀 카드로 바로 시작하는 첫 화면</sub></td>
+    <td width="50%"><img src="images/kinema-assembly.png" alt="조립 화면"><br><sub><b>조립</b> · 부품 카드로 붙이고, 3D에서 작업 부위와 목표를 확인해요</sub></td>
   </tr>
   <tr>
-    <td width="50%"><img src="images/scene.png" alt="과제 화면"><br><sub><b>과제</b> · 과제를 고르고 목표가 나올 범위를 상자로 정해요</sub></td>
-    <td width="50%"><img src="images/monitor.png" alt="실험 노트"><br><sub><b>실험 노트</b> · 실험을 비교하고 메모와 AI 조언을 받아요</sub></td>
+    <td width="50%"><img src="images/kinema-scene.png" alt="과제 화면"><br><sub><b>과제</b> · 과제를 고르고 목표가 나올 범위를 상자로 정해요</sub></td>
+    <td width="50%"><img src="images/kinema-monitor.png" alt="실험 노트"><br><sub><b>실험 노트</b> · 실험을 비교하고 메모와 AI 조언을 받아요</sub></td>
   </tr>
 </table>
 
