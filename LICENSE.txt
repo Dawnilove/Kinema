@@ -1,8 +1,8 @@
-CAPEK 사용 허가서 (End User License Agreement)
+Kinema 사용 허가서 (End User License Agreement)
 Copyright (c) 2026 Dawnilove. All rights reserved.
 
 1. 허용
-   - 개인 학습, 교육, 연구 목적으로 CAPEK을 무료로 설치하고 사용할 수 있다.
+   - 개인 학습, 교육, 연구 목적으로 Kinema을 무료로 설치하고 사용할 수 있다.
    - 사용자가 만든 로봇 설정, 학습 기록, 학습된 두뇌 파일은 사용자의 것이다.
 
 2. 금지
@@ -19,4 +19,4 @@ Copyright (c) 2026 Dawnilove. All rights reserved.
    - 이 기능을 쓰면 학습 설정과 지표 요약이 Anthropic으로 전송된다. 파일 경로와 API 키는 전송하지 않는다.
 
 5. 제3자 소프트웨어
-   - CAPEK은 MuJoCo, PyTorch, Stable-Baselines3, PyQt6 등 오픈소스 소프트웨어를 포함한다. 각 소프트웨어는 자신의 라이선스를 따른다.
+   - Kinema은 MuJoCo, PyTorch, Stable-Baselines3, PyQt6 등 오픈소스 소프트웨어를 포함한다. 각 소프트웨어는 자신의 라이선스를 따른다.
