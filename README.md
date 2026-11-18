@@ -1,6 +1,15 @@
-<p align="center">
-  <a href="https://dawnilove.github.io/Kinema/"><img src="docs/kinema-banner.svg" alt="Kinema — 로봇을 조립하고, 학습시키고, 달성시키는 샌드박스"></a>
-</p>
+<a href="https://dawnilove.github.io/Kinema/"><img src="docs/kinema-walk.svg" alt="Kinema: 부품을 붙이고, 걷게 가르치세요. 넘어지던 로봇이 판을 거듭해 목표 깃발에 닿는 그림"></a>
+
+**Kinema는 부품을 이어 붙여 로봇을 만들고, 강화학습으로 과제를 달성시키는 Windows 앱이에요.**
+
+[**Kinema-Setup.exe 내려받기**](https://github.com/Dawnilove/Kinema/releases/latest/download/Kinema-Setup.exe) | [소개 사이트에서 직접 조립해 보기](https://dawnilove.github.io/Kinema/)
+
+1. **조립**: 몸체, 관절, 다리 같은 부품 카드를 이어 붙여요.
+2. **과제와 학습**: 걷기 같은 과제를 고르고 학습 시작을 눌러요.
+3. **실험 노트**: 넘어지던 로봇이 나아지는 과정을 곡선과 재생으로 비교해요.
+
+<details>
+<summary>전체 소개 펼치기</summary>
 
 <h3 align="center">부품을 이어 붙여 로봇을 만들고, 강화학습으로 과제를 달성시키세요.</h3>
 
@@ -19,6 +28,8 @@
   <a href="https://github.com/Dawnilove/Kinema/releases/latest/download/Kinema-Setup.exe"><b>⬇ Kinema-Setup.exe 내려받기</b></a> ·
   <a href="https://dawnilove.github.io/Kinema/">소개 사이트</a>
 </p>
+
+</details>
 
 > 이 저장소는 **배포용**이에요. 설치파일과 사용 설명만 있고, 소스 코드는 공개하지 않아요.
 

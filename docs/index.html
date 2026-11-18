@@ -3,360 +3,566 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
-<title>Kinema — 로봇을 조립하고 학습시키는 샌드박스</title>
-<meta name="description" content="부품을 이어 붙여 로봇을 만들고, 강화학습으로 과제를 달성시켜요. 조립·과제·학습·실험 노트가 한 앱에. 파이썬도 GPU도 필요 없어요.">
-<meta property="og:title" content="Kinema — 로봇을 조립하고 학습시키는 샌드박스">
+<title>Kinema: 로봇을 조립하고 학습시키는 샌드박스</title>
+<meta name="description" content="부품을 이어 붙여 로봇을 만들고, 강화학습으로 과제를 달성시켜요. 조립, 과제, 학습, 실험 노트가 한 앱에. 파이썬도 GPU도 필요 없어요.">
+<meta property="og:title" content="Kinema: 로봇을 조립하고 학습시키는 샌드박스">
 <meta property="og:description" content="코드 없이 조립하고, 버튼 하나로 학습하고, 지금 정책이 움직이는 모습을 3D로 봐요.">
 <meta property="og:image" content="banner.png">
 <link rel="icon" href="icon.png">
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@500;700&family=Noto+Sans+KR:wght@400;500;700;900&display=swap" rel="stylesheet">
 <style>
-/* 앱(Kinema)과 같은 규칙: 검정 · 주황 · 흰색, 직각에 가까운 모서리, 숫자·이름표는 고정폭 */
+/* 앱(Kinema)과 같은 색: 검정 #121417, 주황 #FF5A1F. 면은 선 대신 밝기 차이로 나눈다 */
 :root{
-  --frame:#E8EAED;--bg:#FFFFFF;--panel:#F4F5F7;--line:#D5D9DF;--inline:#8B93A0;
-  --text:#121417;--sub:#4F5661;--accent:#FF5A1F;--accent-ink:#C2410C;--accent-text:#121417;--sel:#FFE8DD;
-  --blue:#2350E6;--ok:#0B7F43;--dark:#121417;
-  --mono:"IBM Plex Mono","Cascadia Mono",Consolas,"Malgun Gothic",monospace;
-  --sans:"Noto Sans KR","Pretendard","Malgun Gothic","Segoe UI",system-ui,sans-serif;
+  --ground:#F4F5F7;--ink:#121417;--soft:#4F5661;--step:#E8EAED;--step2:#DDE0E5;
+  --accent:#FF5A1F;--on-accent:#121417;
+  --stage:#121417;--stage-2:#1D2128;--stage-3:#2A2F38;--stage-ink:#E8EAED;--stage-soft:#A3ABB8;
+  --sans:"Noto Sans KR","Malgun Gothic","Segoe UI",system-ui,sans-serif;
+  --mono:"IBM Plex Mono",Consolas,"Malgun Gothic",monospace;
+  --m:clamp(16px,3vw,40px);
 }
-@media (prefers-color-scheme:dark){:root{
-  --frame:#14171C;--bg:#1B1F26;--panel:#20252D;--line:#2C323B;--inline:#69717E;
-  --text:#E8EAED;--sub:#A3ABB8;--accent-ink:#FF7A47;--sel:#3A2218;--blue:#6F8CFF;--ok:#3FCB7E;--dark:#0F1216;
-}}
+@media (prefers-color-scheme:dark){
+  :root{--ground:#16191E;--ink:#E8EAED;--soft:#A3ABB8;--step:#1F242B;--step2:#272D35}
+}
 *{box-sizing:border-box}
-html{scroll-behavior:smooth;scroll-padding-top:72px}
-body{margin:0;background:var(--frame);color:var(--text);font:16px/1.75 var(--sans);-webkit-font-smoothing:antialiased}
-a{color:var(--accent-ink);text-underline-offset:3px}
+html{scroll-behavior:smooth;overflow-x:clip}
+body{margin:0;background:var(--ground);color:var(--ink);font:17px/1.6 var(--sans);-webkit-font-smoothing:antialiased;overflow-x:clip}
 img{max-width:100%;height:auto;display:block}
-code{font-family:var(--mono);font-size:.9em;background:var(--panel);border:1px solid var(--line);border-radius:3px;padding:1px 6px}
-.wrap{max-width:1120px;margin:0 auto;padding:0 20px}
-.mono{font-family:var(--mono)}
-a:focus-visible,button:focus-visible,summary:focus-visible{outline:2px solid var(--accent);outline-offset:3px}
+a{color:inherit;text-underline-offset:3px}
+:focus-visible{outline:3px solid var(--accent);outline-offset:3px}
+h1,h2,h3{word-break:keep-all;letter-spacing:-.025em;margin:0}
+p{margin:0}
+code{font-family:var(--mono);font-size:.88em;background:var(--step);padding:1px 6px}
+.wrap{padding:0 var(--m);max-width:1440px;margin:0 auto}
+.btn{display:inline-flex;align-items:center;justify-content:center;min-height:48px;padding:0 22px;background:var(--accent);color:var(--on-accent);font:700 16px var(--sans);text-decoration:none;border:0;cursor:pointer;transition:transform .12s,background .12s}
+.btn:hover{background:#FF7A47}.btn:active{transform:translateY(1px)}
+.btn.ghost{background:var(--stage-3);color:var(--stage-ink)}
+.btn.ghost:hover{background:#3A404B}
+.btn[disabled]{background:var(--stage-3);color:var(--stage-soft);cursor:not-allowed}
 
-/* 상단 바 */
-nav{position:sticky;top:0;z-index:10;background:var(--frame);border-bottom:1px solid var(--line)}
-nav .wrap{display:flex;align-items:center;gap:20px;height:56px}
-.brand{display:flex;align-items:center;gap:10px;color:var(--text);text-decoration:none;font:700 15px var(--mono);letter-spacing:.28em}
-.brand img{width:26px;height:26px}
-.links{display:flex;gap:2px;margin-left:auto}
-.links a{color:var(--sub);text-decoration:none;font-size:14px;padding:6px 11px;border-radius:4px}
-.links a:hover{color:var(--text);background:var(--panel)}
-.btn{display:inline-flex;align-items:center;gap:8px;min-height:44px;padding:0 22px;border-radius:4px;border:1px solid var(--inline);
-  background:var(--bg);color:var(--text);font:600 15px var(--sans);text-decoration:none;cursor:pointer}
-.btn:hover{border-color:var(--text)}
-.btn.main{background:var(--accent);border-color:var(--accent);color:var(--accent-text)}
-.btn.main:hover{border-color:var(--text)}
-nav .btn{min-height:36px;padding:0 16px;font-size:14px}
+/* 위 띠 */
+.bar{background:var(--stage);color:var(--stage-ink)}
+.bar .wrap{display:flex;align-items:center;gap:8px 20px;flex-wrap:wrap;min-height:64px;padding-top:10px;padding-bottom:10px}
+.brand{display:flex;align-items:center;gap:10px;text-decoration:none;font:700 15px var(--mono);letter-spacing:.2em}
+.brand img{width:28px;height:28px}
+.links{display:flex;flex-wrap:wrap;gap:2px 4px;margin-right:auto}
+.links a{color:var(--stage-soft);text-decoration:none;font-size:15px;padding:6px 10px}
+.links a:hover{color:var(--stage-ink)}
+.bar .btn{min-height:40px;font-size:15px}
 
-/* 첫 화면 */
-.hero{padding:64px 0 40px}
-.hero .top{display:grid;grid-template-columns:1.05fr .95fr;gap:40px;align-items:end}
-.pill{display:inline-block;font:600 12px var(--mono);letter-spacing:.08em;color:var(--accent-ink);border:1px solid var(--accent);border-radius:99px;padding:3px 12px;background:var(--bg)}
-h1{font-size:clamp(34px,5.4vw,58px);line-height:1.12;margin:16px 0 18px;letter-spacing:-.02em}
-h1 em{font-style:normal;background:linear-gradient(transparent 62%,var(--accent) 62% 90%,transparent 90%)}
-.lead{font-size:18px;color:var(--sub);margin:0 0 26px;max-width:34em}
-.lead b{color:var(--text)}
-.cta{display:flex;gap:12px;flex-wrap:wrap}
-.meta{margin:14px 0 0;font:13px var(--mono);color:var(--sub)}
-.facts{list-style:none;margin:0;padding:0;display:grid;gap:0;border:1px solid var(--line);background:var(--bg);border-radius:6px}
-.facts li{padding:14px 18px;border-top:1px solid var(--line);display:flex;gap:16px;align-items:baseline}
-.facts li:first-child{border-top:0}
-.facts b{font:600 13px var(--mono);color:var(--accent-ink);min-width:6.2em}
-.facts span{font-size:15px}
+/* 첫 화면: 왼쪽 글, 오른쪽 조립대 */
+.hero{background:var(--stage);color:var(--stage-ink);padding:56px 0 72px}
+.hero .wrap{display:grid;grid-template-columns:5fr 7fr;gap:48px;align-items:start}
+.hero h1{font-size:clamp(40px,5vw,76px);line-height:1.04;font-weight:900;margin-top:24px}
+.hero .lead{font-size:19px;color:var(--stage-ink);margin-top:28px;max-width:30em}
+.hero .cta{display:flex;flex-wrap:wrap;align-items:center;gap:12px 20px;margin-top:36px}
+.hero .small{font-size:15px;color:var(--stage-soft);margin-top:16px}
+.hero .small a{color:var(--stage-ink)}
 
-/* 모드 스위치 + 화면 */
-.shots{margin-top:40px}
-.modes{display:flex;gap:4px;flex-wrap:wrap;border-bottom:1px solid var(--line)}
-.modes button{background:none;border:0;border-bottom:3px solid transparent;color:var(--sub);font:600 15px var(--sans);padding:12px 16px;cursor:pointer;margin-bottom:-1px}
-.modes button .n{font-family:var(--mono);color:var(--inline);margin-left:6px;font-size:13px}
-.modes button:hover{color:var(--text)}
-.modes button[aria-selected="true"]{color:var(--text);border-bottom-color:var(--accent)}
-.stage{background:var(--bg);border:1px solid var(--line);border-top:0;border-radius:0 0 6px 6px;overflow:hidden}
-.stage img{width:100%;border-bottom:1px solid var(--line)}
-.stage .cap{display:flex;gap:18px;align-items:baseline;padding:14px 20px;flex-wrap:wrap}
-.stage .cap b{font:700 14px var(--mono);color:var(--accent-ink)}
-.stage .cap p{margin:0;color:var(--sub);font-size:15px}
+/* 조립대 (앱 조각) */
+.bench{background:var(--stage-2);padding:20px;font-size:15px}
+.bench-top{display:flex;justify-content:space-between;align-items:baseline;gap:12px;flex-wrap:wrap}
+.bench-top b{font-size:17px}
+.bench-top span{color:var(--stage-soft)}
+.tray{display:grid;grid-template-columns:repeat(3,1fr);gap:8px;margin-top:14px}
+.part{touch-action:none;user-select:none;-webkit-user-select:none;cursor:grab;background:var(--stage-3);color:var(--stage-ink);border:0;padding:12px;text-align:left;font:500 15px/1.35 var(--sans);display:flex;gap:10px;align-items:center;min-height:64px;position:relative;z-index:1}
+.part svg{flex:none}
+.part small{display:block;color:var(--stage-soft);font-size:13px}
+.part:hover{background:#353B46}
+.part.dragging{cursor:grabbing;z-index:5;box-shadow:0 10px 24px rgba(0,0,0,.45)}
+.part.used{opacity:.35;cursor:default;pointer-events:none}
+.field{margin-top:10px;background:var(--stage);position:relative}
+.field.over{outline:2px solid var(--accent);outline-offset:-2px}
+.field svg{width:100%;height:auto;display:block}
+.status{margin-top:10px;min-height:1.6em;color:var(--stage-ink)}
+.status.warn{color:#FFB08F}
+.controls{display:flex;flex-wrap:wrap;gap:8px;margin-top:12px;align-items:center}
+.controls .rate{margin-left:auto;font:500 15px var(--mono);color:var(--stage-soft)}
+.controls .rate b{color:var(--stage-ink);font-size:20px}
+.log{list-style:none;margin:12px 0 0;padding:0;display:grid;grid-template-columns:repeat(5,1fr);gap:4px}
+.log li{background:var(--stage-3);padding:6px 8px;font:500 13px/1.4 var(--mono);color:var(--stage-soft)}
+.log li.fall{background:#3A2420;color:#FFB08F}
+.log li.win{background:#173826;color:#7FE0A9}
+.log li.now{background:var(--accent);color:var(--on-accent)}
 
-/* 절 */
-section{padding:72px 0 0}
-.eyebrow{display:block;font:700 12px var(--mono);letter-spacing:.14em;color:var(--accent-ink);text-transform:uppercase;margin-bottom:8px}
-h2{font-size:clamp(26px,3.6vw,36px);line-height:1.25;margin:0 0 12px;letter-spacing:-.015em}
-.sec-lead{color:var(--sub);margin:0 0 28px;max-width:40em;font-size:17px}
-.grid{display:grid;gap:14px;grid-template-columns:repeat(auto-fit,minmax(250px,1fr))}
-.card{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:20px 22px}
-.card h3{margin:0 0 6px;font-size:17px}
-.card p{margin:0;color:var(--sub);font-size:15px}
-.card .no{font:700 13px var(--mono);color:var(--accent-ink);display:block;margin-bottom:10px}
+/* 섹션 */
+section{padding-top:clamp(88px,10vw,160px)}
+.sec-head h2{font-size:clamp(30px,3.6vw,48px);line-height:1.15;font-weight:900}
+.sec-head p{font-size:19px;margin-top:16px;max-width:36em}
 
-/* 정책 재생 강조 */
-.feature{display:grid;grid-template-columns:1.15fr .85fr;gap:32px;align-items:center;background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:26px}
-.feature img{border:1px solid var(--line);border-radius:4px}
-.feature ul{margin:14px 0 0;padding-left:20px;color:var(--sub)}
-.feature li{margin:6px 0}
-.feature li b{color:var(--text)}
+/* 화면 둘러보기 */
+.shots{display:grid;grid-template-columns:4fr 8fr;gap:40px;margin-top:40px;align-items:start}
+.modes{display:flex;flex-direction:column;gap:4px}
+.modes button{background:var(--step);border:0;color:var(--ink);text-align:left;padding:16px 18px;font:700 18px var(--sans);cursor:pointer}
+.modes button span{display:block;font:400 15px/1.5 var(--sans);color:var(--soft);margin-top:4px}
+.modes button:hover{background:var(--step2)}
+.modes button[aria-selected=true]{background:var(--ink);color:var(--ground)}
+.modes button[aria-selected=true] span{color:var(--ground);opacity:.8}
+.stage img{width:100%}
+.stage p{margin-top:12px;color:var(--soft);font-size:15px}
 
-/* 비교표 */
-.vs{background:var(--bg);border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.vs-row{display:grid;grid-template-columns:150px 1fr 24px 1fr;gap:12px;padding:13px 20px;border-top:1px solid var(--line);align-items:baseline}
-.vs-row:first-child{border-top:0;background:var(--panel);font:700 12px var(--mono);letter-spacing:.06em;color:var(--sub)}
-.vs .task{font-weight:600}.vs .old{color:var(--sub)}.vs .arrow{color:var(--accent-ink);font-family:var(--mono)}
-.vs .new{font-weight:500}
+/* 정책 재생 */
+.replay{display:grid;grid-template-columns:7fr 5fr;gap:40px;margin-top:40px;align-items:center}
+.replay ul{margin:0;padding:0;list-style:none;display:grid;gap:4px}
+.replay li{background:var(--step);padding:16px 18px}
+.replay li b{display:block;font-size:18px}
+.replay .note{margin-top:16px;font-size:15px;color:var(--soft)}
+
+/* 네 단계 띠 */
+.board{list-style:none;margin:40px 0 0;padding:0;display:grid;gap:4px}
+.board li{display:grid;grid-template-columns:minmax(140px,3fr) 9fr;gap:24px;align-items:baseline;background:var(--step);padding:22px 24px}
+.board li b{font-size:clamp(26px,2.6vw,36px);font-weight:900;letter-spacing:-.02em}
+.board li:nth-child(3){background:var(--accent);color:var(--on-accent)}
+
+/* 비교 표 */
+.vs{width:100%;border-collapse:separate;border-spacing:0 4px;margin-top:32px;font-size:16px}
+.vs th{text-align:left;font-weight:700;padding:10px 18px;color:var(--soft)}
+.vs td{background:var(--step);padding:16px 18px;vertical-align:top}
+.vs td:first-child{font-weight:700}
+.vs td:last-child{background:var(--step2);font-weight:500}
+
+/* 기능: 두 칸 정의 목록 */
+.feats{display:grid;grid-template-columns:1fr 1fr;gap:4px;margin:40px 0 0}
+.feats div{background:var(--step);padding:24px}
+.feats dt{font-size:20px;font-weight:700}
+.feats dd{margin:8px 0 0;font-size:16px}
 
 /* AI 조언 */
-.chat{display:grid;gap:10px;max-width:640px;margin:0 0 18px}
-.bubble{background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:12px 16px;font-size:15px}
-.bubble.reply{background:var(--sel);border-color:var(--accent);margin-left:40px}
-.callout{border-left:4px solid var(--accent);background:var(--bg);padding:14px 18px;border-radius:0 6px 6px 0;color:var(--sub);max-width:720px}
+.ai{display:grid;grid-template-columns:6fr 6fr;gap:40px;margin-top:40px;align-items:start}
+.chat{background:var(--stage);color:var(--stage-ink);padding:20px;display:grid;gap:10px;font-size:16px}
+.chat p{background:var(--stage-3);padding:12px 16px;max-width:85%}
+.chat p.reply{background:var(--accent);color:var(--on-accent);justify-self:end}
+.ai .side p+p{margin-top:16px}
+
+/* 내 PC */
+.local{list-style:none;padding:0;margin:32px 0 0;display:grid;grid-template-columns:repeat(3,1fr);gap:4px}
+.local li{padding:24px;background:var(--step)}
+.local li:first-child{grid-column:span 3;background:var(--ink);color:var(--ground);font-size:22px;font-weight:700}
+.local b{display:block;font-size:18px}
 
 /* 설치 */
-.band{background:var(--dark);color:#E8EAED;margin-top:72px;padding:64px 0}
-.band section{padding:0}
-.band .eyebrow{color:#FF7A47}.band .sec-lead,.band .note{color:#A3ABB8}
-.band a{color:#FF9A70}
-.steps{list-style:none;margin:0;padding:0;display:grid;gap:12px;counter-reset:s}
-.steps li{counter-increment:s;display:grid;grid-template-columns:44px 1fr;gap:4px 14px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:6px;padding:16px 20px}
-.steps li::before{content:counter(s);grid-row:1/3;font:700 28px/1 var(--mono);color:var(--accent-ink)}
-.steps li b{font-size:17px}
-.steps li ul{margin:4px 0 0;padding-left:18px;color:var(--sub);font-size:15px}
-.band .steps li a{color:var(--accent-ink)}
-.spec{width:100%;border-collapse:collapse;margin-top:22px;background:var(--bg);color:var(--text);border:1px solid var(--line);border-radius:6px;overflow:hidden}
-.spec th,.spec td{text-align:left;padding:11px 18px;border-top:1px solid var(--line);font-size:15px;vertical-align:top}
-.spec tr:first-child th,.spec tr:first-child td{border-top:0}
-.spec th{width:9em;font:700 12px var(--mono);letter-spacing:.06em;color:var(--sub);text-transform:uppercase}
-.note{font-size:14px;color:var(--sub);margin:16px 0 0}
+.install{background:var(--accent);color:var(--on-accent);margin-top:clamp(88px,10vw,160px);padding:72px 0}
+.install section{padding-top:0;display:grid;grid-template-columns:5fr 7fr;gap:48px}
+.install h2{font-size:clamp(30px,3.6vw,48px);font-weight:900;line-height:1.15}
+.install ol{margin:0;padding-left:1.4em;display:grid;gap:18px;font-size:17px}
+.install li>b{display:block;font-size:20px}
+svg [hidden]{display:none}
+.install table{border-collapse:collapse;margin-top:28px;width:100%;font-size:16px}
+.install th,.install td{text-align:left;padding:10px 0;vertical-align:top}
+.install th{width:7em}
+.install .note{margin-top:20px;font-size:15px}
+.install a{color:inherit}
 
-/* 문제 해결·버전 */
-details{background:var(--bg);border:1px solid var(--line);border-radius:6px;margin:0 0 8px}
-summary{cursor:pointer;padding:14px 18px;font-weight:600;list-style:none}
-summary::-webkit-details-marker{display:none}
-summary::before{content:"+";font:700 15px var(--mono);color:var(--accent-ink);margin-right:12px;display:inline-block;width:1ch}
-details[open] summary::before{content:"−"}
-details p{margin:0;padding:0 18px 16px 44px;color:var(--sub);font-size:15px}
-#vlist{list-style:none;margin:0;padding:0;background:var(--bg);border:1px solid var(--line);border-radius:6px}
-#vlist li{display:flex;gap:16px;align-items:baseline;flex-wrap:wrap;padding:12px 18px;border-top:1px solid var(--line)}
-#vlist li:first-child{border-top:0}
-#vlist b{font-family:var(--mono)}
+/* 문제 해결 */
+.help{display:grid;grid-template-columns:4fr 8fr;gap:40px;margin-top:0}
+.help details{background:var(--step);margin-bottom:4px}
+.help summary{cursor:pointer;padding:18px 20px;font-weight:700;font-size:18px}
+.help details p{padding:0 20px 20px;font-size:16px}
 
-.final{text-align:center;padding:80px 0 64px}
-.final .cta{justify-content:center}
-footer{border-top:1px solid var(--line);padding:26px 0 40px;color:var(--sub);font-size:14px;text-align:center}
-footer a{color:var(--sub)}
+/* 버전 */
+#vlist{list-style:none;padding:0;margin:32px 0 0;display:grid;gap:4px}
+#vlist li{display:flex;flex-wrap:wrap;gap:6px 20px;align-items:baseline;background:var(--step);padding:14px 18px}
+#vlist b{font-family:var(--mono);min-width:5em}
+#vlist .when{color:var(--soft);font-size:15px}
 
-@media (max-width:900px){
-  .links{display:none}nav .btn{margin-left:auto}
-  .hero .top,.feature{grid-template-columns:1fr}
-  .vs-row{grid-template-columns:1fr;gap:2px}.vs-row:first-child{display:none}.vs .arrow{display:none}
-  .vs .task{font-family:var(--mono);font-size:12px;color:var(--accent-ink)}
-  section{padding-top:56px}
+/* 끝 */
+.final{background:var(--stage);color:var(--stage-ink);margin-top:clamp(88px,10vw,160px);padding:96px 0}
+.final .wrap{display:grid;grid-template-columns:7fr 5fr;gap:40px;align-items:end}
+.final h2{font-size:clamp(40px,6vw,96px);line-height:1;font-weight:900}
+.final p{font-size:18px;color:var(--stage-soft);margin-top:20px}
+.final .cta{display:flex;flex-wrap:wrap;gap:12px;justify-content:flex-end}
+footer{background:var(--stage);color:var(--stage-soft);padding:0 0 48px;font-size:15px}
+footer .wrap{display:flex;flex-wrap:wrap;gap:8px 24px;padding-top:28px;background:none}
+footer a{color:var(--stage-ink)}
+footer .copy{flex-basis:100%}
+
+@media (max-width:1024px){
+  .hero .wrap,.shots,.replay,.ai,.help,.install section,.final .wrap{grid-template-columns:1fr}
+  .final .cta{justify-content:flex-start}
 }
-@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}}
+@media (max-width:640px){
+  body{font-size:16px}
+  .bar .btn{margin-left:auto}
+  .links{order:3;flex-basis:100%;margin:0 0 0 -10px}
+  .links a{font-size:14px;padding:4px 10px}
+  .hero{padding:24px 0 48px}
+  .hero h1{margin-top:8px}
+  .tray{grid-template-columns:1fr 1fr 1fr;gap:6px}
+  .part{flex-direction:column;align-items:flex-start;padding:10px;font-size:14px}
+  .part small{display:none}
+  .log{grid-template-columns:repeat(3,1fr)}
+  .board li{grid-template-columns:1fr;gap:6px;padding:18px}
+  .feats{grid-template-columns:1fr}
+  .local{grid-template-columns:1fr}
+  .local li:first-child{grid-column:auto}
+  .vs thead{display:none}
+  .vs tr{display:grid;margin-bottom:8px}
+  .vs td{padding:10px 14px}
+  .controls .rate{margin-left:0;flex-basis:100%}
+}
+@media (prefers-reduced-motion:reduce){html{scroll-behavior:auto}.btn{transition:none}}
 </style>
 </head>
 <body>
-<nav><div class="wrap">
+<div class="bar"><div class="wrap">
   <a class="brand" href="#top"><img src="icon.png" alt="">KINEMA</a>
-  <div class="links">
+  <nav class="links" aria-label="페이지 안 이동">
     <a href="#replay">정책 재생</a><a href="#features">기능</a><a href="#ai">AI 조언</a><a href="#install">설치</a><a href="#help">문제 해결</a><a href="#versions">이전 버전</a>
-  </div>
-  <a class="btn main" href="https://github.com/Dawnilove/Kinema/releases/latest/download/Kinema-Setup.exe">다운로드</a>
-</div></nav>
+  </nav>
+  <a class="btn" href="https://github.com/Dawnilove/Kinema/releases/latest/download/Kinema-Setup.exe">다운로드</a>
+</div></div>
 
 <header class="hero" id="top"><div class="wrap">
-  <div class="top">
-    <div>
-      <span class="pill" id="ver">최신 버전</span>
-      <h1>로봇을 <em>조립</em>하고,<br>학습시키고,<br>달성시키세요.</h1>
-      <p class="lead">부품을 이어 붙여 로봇을 만들고, <b>강화학습으로 과제를 달성</b>시키는 샌드박스예요. 파이썬도, 개발 도구도, <b>GPU도 필요 없어요.</b></p>
-      <div class="cta">
-        <a class="btn main" href="https://github.com/Dawnilove/Kinema/releases/latest/download/Kinema-Setup.exe">⬇ Windows용 무료 다운로드</a>
-        <a class="btn" href="#replay">정책 재생 보기</a>
-      </div>
-      <p class="meta">설치파일 하나 · 약 150 MB · <a href="https://github.com/Dawnilove/Kinema/releases/latest">릴리스 노트</a></p>
+  <div>
+    <h1>부품을 붙이고,<br>걷게 가르치세요</h1>
+    <p class="lead">Kinema는 부품을 이어 붙여 로봇을 만들고, 강화학습으로 과제를 달성시키는 Windows 앱이에요. 파이썬도, 개발 도구도, GPU도 필요 없어요.</p>
+    <div class="cta">
+      <a class="btn" href="https://github.com/Dawnilove/Kinema/releases/latest/download/Kinema-Setup.exe">Windows용 무료 다운로드</a>
     </div>
-    <ul class="facts">
-      <li><b>설치</b><span>한 번, 파이썬·GPU 불필요</span></li>
-      <li><b>한 앱</b><span>조립 · 과제 · 학습 · 실험 노트</span></li>
-      <li><b>5가지 과제</b><span>뻗기 · 이동 · 균형 · 걷기 · 집기</span></li>
-      <li><b>무료</b><span>개인·교육·연구 목적</span></li>
-    </ul>
+    <p class="small"><span id="ver">최신 버전</span>, 설치파일 하나, 약 150 MB. <a href="https://github.com/Dawnilove/Kinema/releases/latest">릴리스 노트</a></p>
   </div>
 
-  <div class="shots" id="shots">
-    <div class="modes" role="tablist" aria-label="화면 보기">
-      <button role="tab" aria-selected="false" data-i="0">시작</button>
-      <button role="tab" aria-selected="false" data-i="1">조립<span class="n">1</span></button>
-      <button role="tab" aria-selected="false" data-i="2">과제<span class="n">2</span></button>
-      <button role="tab" aria-selected="true" data-i="3">학습<span class="n">3</span></button>
-      <button role="tab" aria-selected="false" data-i="4">실험 노트<span class="n">4</span></button>
+  <div class="bench" data-ui id="bench">
+    <div class="bench-top"><b>조립대: 걷기 과제</b><span>부품을 아래 바닥으로 끌어 붙이세요</span></div>
+    <div class="tray" role="group" aria-label="부품 카드">
+      <button class="part" type="button" data-part="body"><svg width="34" height="22" viewBox="0 0 34 22" aria-hidden="true"><rect x="1" y="3" width="32" height="16" fill="#FF5A1F"/></svg><span>몸체<small>상자 1.2 kg</small></span></button>
+      <button class="part" type="button" data-part="joint"><svg width="22" height="22" viewBox="0 0 22 22" aria-hidden="true"><circle cx="11" cy="11" r="8" fill="#121417" stroke="#E8EAED" stroke-width="3"/></svg><span>관절 모듈<small>엉덩이 2축</small></span></button>
+      <button class="part" type="button" data-part="leg"><svg width="22" height="30" viewBox="0 0 22 30" aria-hidden="true"><path d="M7 2 4 28M15 2 18 28" stroke="#E8EAED" stroke-width="4" stroke-linecap="round"/></svg><span>다리 ×2<small>0.3 m</small></span></button>
     </div>
-    <div class="stage">
-      <img id="shot" src="images/train.png" width="1360" height="820" alt="Kinema 학습 화면: 지금 학습 중인 정책이 한 판 하는 3D 재생, 성공률 곡선, 지표 카드">
-      <div class="cap"><b id="capn">학습 3</b><p id="capt">학습 중인 정책이 지금 한 판 하는 모습을 3D로 봐요. 손이 지난 길과 잔상도 보여요.</p></div>
+    <div class="field" id="field">
+      <svg viewBox="0 0 600 270" role="img" aria-labelledby="fieldTitle">
+        <title id="fieldTitle">걷기 과제 바닥. 출발선에서 목표 깃발까지 2.0 m</title>
+        <rect x="0" y="230" width="600" height="40" fill="#1D2128"/>
+        <rect x="508" y="120" width="4" height="110" fill="#A3ABB8"/>
+        <path d="M512 120h34l-10 12 10 12h-34z" fill="#FF5A1F"/>
+        <text x="500" y="256" fill="#A3ABB8" font-size="15" font-family="IBM Plex Mono,Consolas,monospace" text-anchor="middle">목표 2.0 m</text>
+        <text x="90" y="256" fill="#A3ABB8" font-size="15" font-family="IBM Plex Mono,Consolas,monospace" text-anchor="middle">출발</text>
+        <g id="ghost" fill="none" stroke="#3A404B" stroke-width="2" stroke-dasharray="6 5">
+          <rect x="50" y="128" width="80" height="38"/><circle cx="90" cy="172" r="8"/><path d="M90 180 80 230M90 180 100 230"/>
+        </g>
+        <g id="robot" transform="translate(90 0)">
+          <g id="r-legs" hidden>
+            <line id="legA" x1="0" y1="172" x2="-10" y2="230" stroke="#E8EAED" stroke-width="8" stroke-linecap="round"/>
+            <line id="legB" x1="0" y1="172" x2="10" y2="230" stroke="#C9CED6" stroke-width="8" stroke-linecap="round"/>
+          </g>
+          <rect id="r-body" x="-40" y="128" width="80" height="38" fill="#FF5A1F" hidden/>
+          <circle id="r-joint" cx="0" cy="172" r="9" fill="#121417" stroke="#E8EAED" stroke-width="4" hidden/>
+        </g>
+      </svg>
     </div>
+    <p class="status" id="status" aria-live="polite">몸체부터 붙이세요. 카드를 끌거나 눌러도 돼요.</p>
+    <div class="controls">
+      <button class="btn" type="button" id="train" disabled>학습 시작</button>
+      <button class="btn ghost" type="button" id="reset">분해</button>
+      <span class="rate">성공률 <b id="rate">0%</b></span>
+    </div>
+    <ol class="log" id="log" aria-label="학습 기록"></ol>
   </div>
 </div></header>
 
 <main>
   <div class="wrap">
     <section id="replay">
-      <span class="eyebrow">Policy replay</span>
-      <h2>학습하는 동안, 지금 정책이 하는 일을 봐요</h2>
-      <p class="sec-lead">숫자 곡선만 보며 기다리지 않아도 돼요. 학습이 돌아가는 동안 지금의 정책이 한 판 하는 모습이 3D로 계속 갱신돼요.</p>
-      <div class="feature">
-        <img src="images/train.png" width="1360" height="820" loading="lazy" alt="학습 중 정책 재생: 로봇 팔과 손이 지난 길(주황 선), 판 결과 배지">
+      <div class="sec-head">
+        <h2>학습하는 동안, 지금 정책이 하는 일을 봐요</h2>
+        <p>숫자 곡선만 보며 기다리지 않아도 돼요. 학습이 돌아가는 동안 지금의 정책이 한 판 하는 모습이 3D로 계속 갱신돼요.</p>
+      </div>
+      <div class="shots">
+        <div class="modes" role="tablist" aria-label="화면 보기">
+          <button role="tab" aria-selected="false" data-i="0">시작<span>틀 카드로 바로 시작해요</span></button>
+          <button role="tab" aria-selected="false" data-i="1">조립<span>부품 카드로 붙이고 3D로 확인해요</span></button>
+          <button role="tab" aria-selected="false" data-i="2">과제<span>목표가 나올 범위를 상자로 정해요</span></button>
+          <button role="tab" aria-selected="true" data-i="3">학습<span>정책 재생과 성공률 곡선</span></button>
+          <button role="tab" aria-selected="false" data-i="4">실험 노트<span>두 실험을 겹쳐 비교해요</span></button>
+        </div>
+        <div class="stage">
+          <img id="shot" src="images/train.png" width="1360" height="820" alt="Kinema 학습 화면: 지금 학습 중인 정책이 한 판 하는 3D 재생, 성공률 곡선, 지표 카드">
+          <p id="capt">학습 중인 정책이 지금 한 판 하는 모습을 3D로 봐요. 손이 지난 길과 잔상도 보여요.</p>
+        </div>
+      </div>
+      <div class="replay">
+        <img src="images/assembly.png" width="1360" height="820" loading="lazy" alt="조립 화면: 왼쪽 부품 카드, 가운데 3D, 오른쪽 속성">
         <div>
-          <h3 style="margin:0">보이는 것</h3>
           <ul>
-            <li><b>손이 지난 길</b> — 주황 선과 앞으로 갈 길(점선)</li>
-            <li><b>지나온 자세 잔상</b>과 지난 판들 겹쳐 보기</li>
-            <li><b>판 결과</b> — "성공 · 54스텝" 같은 배지와 스냅샷 시점</li>
-            <li><b>끄는 스위치</b> — 느린 PC에서는 "보기"를 끄면 계산이 멈춰요</li>
+            <li><b>손이 지난 길</b>주황 선과 앞으로 갈 길(점선)이 보여요.</li>
+            <li><b>지나온 자세 잔상</b>지난 판들을 겹쳐 볼 수 있어요.</li>
+            <li><b>판 결과</b>"성공, 54스텝" 같은 배지와 스냅샷 시점을 보여 줘요.</li>
+            <li><b>끄는 스위치</b>느린 PC에서는 "보기"를 끄면 계산이 멈춰요.</li>
           </ul>
-          <p class="note" style="margin-top:14px">학습 결과에는 영향이 없어요. 같은 설정과 시드로 학습하면 재생을 켜도 꺼도 똑같은 결과가 나오는 것을 확인했어요.</p>
+          <p class="note">학습 결과에는 영향이 없어요. 같은 설정과 시드로 학습하면 재생을 켜도 꺼도 똑같은 결과가 나오는 것을 확인했어요.</p>
         </div>
       </div>
     </section>
 
     <section id="flow">
-      <span class="eyebrow">Four modes</span>
-      <h2>네 단계로 이어져요</h2>
-      <div class="grid">
-        <div class="card"><span class="no">01 조립</span><h3>코드 없이 붙여요</h3><p>링크·관절·바퀴·다리·그리퍼를 카드로 이어 붙이고, 3D에서 바로 확인해요. 잘못 붙이면 이유를 알려 줘요.</p></div>
-        <div class="card"><span class="no">02 과제</span><h3>무엇을 달성할지 정해요</h3><p>뻗기·이동·균형·걷기·집기 중에서 고르고, 목표가 나올 범위를 상자로 정해요.</p></div>
-        <div class="card"><span class="no">03 학습</span><h3>버튼 하나로 시작해요</h3><p>진행 띠와 곡선, 정책 재생이 실시간으로 움직여요. 일시정지도 되고, 창을 닫아도 학습은 계속돼요.</p></div>
-        <div class="card"><span class="no">04 실험 노트</span><h3>기록이 쌓이고 비교돼요</h3><p>실험을 시간순으로 보고, 두 개를 골라 곡선과 바뀐 설정을 비교해요. 메모와 AI 조언도 한 장에.</p></div>
-      </div>
+      <div class="sec-head"><h2>네 단계로 이어져요</h2></div>
+      <ol class="board">
+        <li><b>조립</b><span>링크, 관절, 바퀴, 다리, 그리퍼를 카드로 이어 붙이고 3D에서 바로 확인해요. 잘못 붙이면 이유를 알려 줘요. 코드는 필요 없어요.</span></li>
+        <li><b>과제</b><span>뻗기, 이동, 균형, 걷기, 집기 중에서 무엇을 달성할지 고르고, 목표가 나올 범위를 상자로 정해요.</span></li>
+        <li><b>학습</b><span>버튼 하나로 시작해요. 진행 띠와 곡선, 정책 재생이 실시간으로 움직여요. 일시정지도 되고, 창을 닫아도 학습은 계속돼요.</span></li>
+        <li><b>실험 노트</b><span>실험을 시간순으로 보고, 두 개를 골라 곡선과 바뀐 설정을 비교해요. 메모와 AI 조언도 한 장에 있어요.</span></li>
+      </ol>
     </section>
 
     <section id="compare">
-      <span class="eyebrow">Before / after</span>
-      <h2>직접 짜고 뒤지던 일을 버튼으로</h2>
-      <div class="vs" role="table" aria-label="보통 방법과 Kinema 비교">
-        <div class="vs-row" role="row"><span role="columnheader">하고 싶은 일</span><span role="columnheader">보통은</span><span></span><span role="columnheader">Kinema이면</span></div>
-        <div class="vs-row" role="row"><span class="task" role="cell">로봇 만들기</span><span class="old" role="cell">URDF·XML을 직접 작성</span><span class="arrow" aria-hidden="true">→</span><span class="new" role="cell">부품 카드로 조립, 3D로 바로 확인</span></div>
-        <div class="vs-row" role="row"><span class="task" role="cell">과제 정하기</span><span class="old" role="cell">환경 코드를 직접 수정</span><span class="arrow" aria-hidden="true">→</span><span class="new" role="cell">과제를 고르고 목표 범위를 상자로 지정</span></div>
-        <div class="vs-row" role="row"><span class="task" role="cell">학습 시작</span><span class="old" role="cell">스크립트 작성 · 명령 실행</span><span class="arrow" aria-hidden="true">→</span><span class="new" role="cell">시작 버튼 하나</span></div>
-        <div class="vs-row" role="row"><span class="task" role="cell">진행 확인</span><span class="old" role="cell">TensorBoard를 따로 띄우기</span><span class="arrow" aria-hidden="true">→</span><span class="new" role="cell">진행 띠·곡선·정책 재생(3D)</span></div>
-        <div class="vs-row" role="row"><span class="task" role="cell">학습이 막혔을 때</span><span class="old" role="cell">로그를 읽고 감으로 조정</span><span class="arrow" aria-hidden="true">→</span><span class="new" role="cell">원인 후보 알림과 안전한 자동 조정</span></div>
-        <div class="vs-row" role="row"><span class="task" role="cell">학습 비교</span><span class="old" role="cell">로그 폴더를 직접 뒤지기</span><span class="arrow" aria-hidden="true">→</span><span class="new" role="cell">실험 노트에서 겹쳐 보고 설정 차이 확인</span></div>
-      </div>
+      <div class="sec-head"><h2>직접 짜고 뒤지던 일을 버튼으로</h2></div>
+      <table class="vs">
+        <thead><tr><th scope="col">하고 싶은 일</th><th scope="col">보통은</th><th scope="col">Kinema이면</th></tr></thead>
+        <tbody>
+          <tr><td>로봇 만들기</td><td>URDF, XML을 직접 작성</td><td>부품 카드로 조립, 3D로 바로 확인</td></tr>
+          <tr><td>과제 정하기</td><td>환경 코드를 직접 수정</td><td>과제를 고르고 목표 범위를 상자로 지정</td></tr>
+          <tr><td>학습 시작</td><td>스크립트 작성, 명령 실행</td><td>시작 버튼 하나</td></tr>
+          <tr><td>진행 확인</td><td>TensorBoard를 따로 띄우기</td><td>진행 띠, 곡선, 정책 재생(3D)</td></tr>
+          <tr><td>학습이 막혔을 때</td><td>로그를 읽고 감으로 조정</td><td>원인 후보 알림과 안전한 자동 조정</td></tr>
+          <tr><td>학습 비교</td><td>로그 폴더를 직접 뒤지기</td><td>실험 노트에서 겹쳐 보고 설정 차이 확인</td></tr>
+        </tbody>
+      </table>
     </section>
 
     <section id="features">
-      <span class="eyebrow">Features</span>
-      <h2>필요한 건 다 들어 있어요</h2>
-      <div class="grid">
-        <div class="card"><h3>부품 5종 이상</h3><p>링크, 관절 모듈, 바퀴, 다리, 그리퍼, 몸체. 부품마다 크기·질량·역할을 정해요. URDF·MJCF 파일도 불러와요.</p></div>
-        <div class="card"><h3>조립 검사</h3><p>끊긴 부품, 빠진 역할 같은 문제를 학습 전에 알려 줘요.</p></div>
-        <div class="card"><h3>알고리즘 3종</h3><p>SAC·PPO·TD3. 병렬 환경으로 CPU에서 돌려요. 학습률을 일정하게 둘지 줄여 갈지 골라요.</p></div>
-        <div class="card"><h3>이어서 학습</h3><p>끝난 학습의 두뇌에서 이어 학습해요. 구조가 다르면 이유를 알려 줘요.</p></div>
-        <div class="card"><h3>자동 진단</h3><p>학습이 막히면 원인 후보를 알려 주고, 안전한 것은 스스로 고쳐요.</p></div>
-        <div class="card"><h3>내 PC에 저장</h3><p>모든 기록은 <code>문서\Kinema</code>에 저장돼요. 제거해도 남아요.</p></div>
-      </div>
+      <div class="sec-head"><h2>필요한 건 다 들어 있어요</h2></div>
+      <dl class="feats">
+        <div><dt>부품 5종 이상</dt><dd>링크, 관절 모듈, 바퀴, 다리, 그리퍼, 몸체. 부품마다 크기, 질량, 역할을 정해요. URDF, MJCF 파일도 불러와요.</dd></div>
+        <div><dt>조립 검사</dt><dd>끊긴 부품, 빠진 역할 같은 문제를 학습 전에 알려 줘요.</dd></div>
+        <div><dt>알고리즘 3종</dt><dd>SAC, PPO, TD3. 병렬 환경으로 CPU에서 돌려요. 학습률을 일정하게 둘지 줄여 갈지 골라요.</dd></div>
+        <div><dt>이어서 학습</dt><dd>끝난 학습의 두뇌에서 이어 학습해요. 구조가 다르면 이유를 알려 줘요.</dd></div>
+        <div><dt>자동 진단</dt><dd>학습이 막히면 원인 후보를 알려 주고, 안전한 것은 스스로 고쳐요.</dd></div>
+        <div><dt>내 PC에 저장</dt><dd>모든 기록은 <code>문서\Kinema</code>에 저장돼요. 제거해도 남아요.</dd></div>
+      </dl>
     </section>
 
     <section id="ai">
-      <span class="eyebrow">AI advice · optional</span>
-      <h2>"왜 학습이 안 되죠?"를 AI에게 물어보세요</h2>
-      <p class="sec-lead">실험 노트에서 실험을 고르고 <b>AI 조언 받기</b>를 누르면, 분석가 2명이 따로 기록을 보고 <b>의견이 같은 것만</b> 설정 제안으로 보여 줘요.</p>
-      <div class="chat">
-        <div class="bubble">성공률이 40000스텝까지 0%예요. 뭘 바꾸면 돼요?</div>
-        <div class="bubble reply">두 분석이 같은 원인을 짚었어요 → 제안 1건. 새 설정 파일로만 적용되고, 학습은 자동으로 시작하지 않아요.</div>
+      <div class="sec-head">
+        <h2>"왜 학습이 안 되죠?"를 AI에게 물어보세요</h2>
+        <p>이 기능은 선택이에요. 실험 노트에서 실험을 고르고 <b>AI 조언 받기</b>를 누르면, 분석가 2명이 따로 기록을 보고 <b>의견이 같은 것만</b> 설정 제안으로 보여 줘요.</p>
       </div>
-      <div class="callout">본인의 Anthropic API 키가 필요하고, 호출 전에 예상 비용(한 번에 약 $0.1~0.3)을 보여 준 뒤 확인을 받아요. 키는 Windows 자격 증명 관리자에 저장하고 파일에는 쓰지 않아요.</div>
+      <div class="ai">
+        <div class="chat" data-ui>
+          <p>성공률이 40000스텝까지 0%예요. 뭘 바꾸면 돼요?</p>
+          <p class="reply">두 분석이 같은 원인을 짚었어요. 제안 1건. 새 설정 파일로만 적용되고, 학습은 자동으로 시작하지 않아요.</p>
+        </div>
+        <div class="side">
+          <p>본인의 Anthropic API 키가 필요해요. 호출 전에 예상 비용(한 번에 약 $0.1~0.3)을 보여 준 뒤 확인을 받아요.</p>
+          <p>키는 Windows 자격 증명 관리자에 저장하고 파일에는 쓰지 않아요.</p>
+        </div>
+      </div>
     </section>
 
     <section id="security">
-      <span class="eyebrow">Privacy</span>
-      <h2>내 PC 안에서 돌아요</h2>
-      <div class="grid">
-        <div class="card"><h3>조립·학습·재생은 로컬</h3><p>모두 이 PC에서 돌아요. 인터넷은 AI 조언을 쓸 때만 써요.</p></div>
-        <div class="card"><h3>보내는 것은 요약만</h3><p>AI 조언을 쓸 때 학습 설정과 지표 요약만 Anthropic으로 가요. 파일 경로와 API 키는 보내지 않아요.</p></div>
-        <div class="card"><h3>자동으로 하지 않아요</h3><p>조언은 참고용이에요. 적용도, 학습 시작도 내가 눌러야만 돼요.</p></div>
-      </div>
+      <div class="sec-head"><h2>내 PC 안에서 돌아요</h2></div>
+      <ul class="local">
+        <li>조립, 학습, 재생은 모두 이 PC에서 돌아요. 인터넷은 AI 조언을 쓸 때만 써요.</li>
+        <li><b>보내는 것은 요약만</b>AI 조언을 쓸 때 학습 설정과 지표 요약만 Anthropic으로 가요. 파일 경로와 API 키는 보내지 않아요.</li>
+        <li><b>자동으로 하지 않아요</b>조언은 참고용이에요. 적용도, 학습 시작도 내가 눌러야만 돼요.</li>
+        <li><b>제거해도 기록은 남아요</b>학습 기록은 <code>문서\Kinema</code>에 그대로 있어요.</li>
+      </ul>
     </section>
   </div>
 
-  <div class="band">
-    <div class="wrap">
-      <section id="install">
-        <span class="eyebrow">Install</span>
+  <div class="install"><div class="wrap">
+    <section id="install">
+      <div>
         <h2>설치파일 하나로 끝나요</h2>
-        <ol class="steps" style="margin-top:22px">
-          <li><b>내려받기</b><span>위의 <a href="https://github.com/Dawnilove/Kinema/releases/latest/download/Kinema-Setup.exe">다운로드</a> 버튼으로 <code>Kinema-Setup.exe</code>를 받아요.</span></li>
-          <li><b>설치</b><span>더블클릭해서 설치해요. 관리자 권한은 필요 없어요. "알 수 없는 게시자" 경고가 뜨면 <b>추가 정보 → 실행</b>.</span></li>
-          <li><b>열기</b><span>시작 메뉴에서 <b>Kinema</b>를 열어요. 시작 화면의 틀 카드(고정 팔 · 바퀴 로봇 · 4족 보행)로 바로 시작해요.</span></li>
-        </ol>
-        <table class="spec">
-          <tr><th>필요한 것</th><td>Windows 10 또는 11, 64비트</td></tr>
-          <tr><th>권장</th><td>메모리 8 GB 이상, 디스크 약 1 GB</td></tr>
-          <tr><th>GPU</th><td>필요 없어요. 3D가 안 되는 PC는 소프트웨어 방식으로 자동 전환해요.</td></tr>
+        <table>
+          <tr><th scope="row">필요한 것</th><td>Windows 10 또는 11, 64비트</td></tr>
+          <tr><th scope="row">권장</th><td>메모리 8 GB 이상, 디스크 약 1 GB</td></tr>
+          <tr><th scope="row">GPU</th><td>필요 없어요. 3D가 안 되는 PC는 소프트웨어 방식으로 자동 전환해요.</td></tr>
         </table>
-        <p class="note">제거하려면 설정 → 앱에서 Kinema를 지워요. 학습 기록(<code>문서\Kinema</code>)은 남아요. 예전 버전(CAPEK)이 만든 <code>문서\CAPEK</code> 폴더가 있으면 Kinema가 그대로 이어서 써요. 코드 서명이 아직 없어 첫 실행에 경고가 뜰 수 있고, 일부 백신이 새 프로그램을 의심할 수 있어요.</p>
-      </section>
-    </div>
-  </div>
+      </div>
+      <div>
+        <ol>
+          <li><b>내려받기</b><a href="https://github.com/Dawnilove/Kinema/releases/latest/download/Kinema-Setup.exe">다운로드</a>를 눌러 <code>Kinema-Setup.exe</code>를 받아요.</li>
+          <li><b>설치</b>더블클릭해서 설치해요. 관리자 권한은 필요 없어요. "알 수 없는 게시자" 경고가 뜨면 <b>추가 정보</b>를 누르고 <b>실행</b>을 눌러요.</li>
+          <li><b>열기</b>시작 메뉴에서 Kinema를 열어요. 시작 화면의 틀 카드(고정 팔, 바퀴 로봇, 4족 보행)로 바로 시작해요.</li>
+        </ol>
+        <p class="note">제거하려면 설정 &gt; 앱에서 Kinema를 지워요. 학습 기록(<code>문서\Kinema</code>)은 남아요. 예전 버전(CAPEK)이 만든 <code>문서\CAPEK</code> 폴더가 있으면 Kinema가 그대로 이어서 써요. 코드 서명이 아직 없어 첫 실행에 경고가 뜰 수 있고, 일부 백신이 새 프로그램을 의심할 수 있어요.</p>
+      </div>
+    </section>
+  </div></div>
 
   <div class="wrap">
-    <section id="help">
-      <span class="eyebrow">Help</span>
-      <h2>잘 안 될 때</h2>
-      <details><summary>설치할 때 "알 수 없는 게시자" 경고가 떠요</summary><p>코드 서명이 아직 없어서 나오는 정상 경고예요. <b>추가 정보 → 실행</b>을 누르면 설치돼요. "앱 제어 정책이 차단했다"는 창이 뜨면 <a href="https://github.com/Dawnilove/Kinema/issues">이슈</a>에 화면 문구를 남겨 주세요.</p></details>
-      <details><summary>3D 화면이 안 나와요</summary><p>GPU가 없거나 드라이버 문제일 때 소프트웨어 방식으로 자동 전환해요. 그래도 안 나오면 <code>문서\Kinema\logs\gui.log</code>를 이슈에 붙여 주세요. 학습은 3D 없이도 돌아요.</p></details>
-      <details><summary>학습이 너무 느려요</summary><p>학습은 CPU로 해요. 다른 프로그램이 CPU를 많이 쓰면 몇 배 느려질 수 있어요. 학습 설정에서 병렬 환경 수를 줄이거나 학습 스텝을 줄이고, 정책 재생의 "보기"를 꺼 보세요.</p></details>
-      <details><summary>기록은 어디에 저장되나요</summary><p><code>문서\Kinema</code> 폴더예요. <code>runs\</code>(학습 기록과 두뇌), <code>my_configs\</code>(내가 저장한 설정), <code>logs\</code>(로그). 폴더를 바꾸려면 환경변수 <code>KINEMA_DATA_DIR</code>을 설정해요.</p></details>
-      <details><summary>AI 조언 키는 어떻게 넣나요</summary><p>실험 노트에서 <b>AI 조언 받기</b>를 눌러 안내를 읽고 동의한 뒤 키를 입력해요. 키는 Windows 자격 증명 관리자에 저장되고 파일에는 남지 않아요.</p></details>
+    <section id="help" class="help">
+      <div class="sec-head"><h2>잘 안 될 때</h2></div>
+      <div>
+        <details><summary>설치할 때 "알 수 없는 게시자" 경고가 떠요</summary><p>코드 서명이 아직 없어서 나오는 정상 경고예요. <b>추가 정보</b>를 누르고 <b>실행</b>을 누르면 설치돼요. "앱 제어 정책이 차단했다"는 창이 뜨면 <a href="https://github.com/Dawnilove/Kinema/issues">이슈</a>에 화면 문구를 남겨 주세요.</p></details>
+        <details><summary>3D 화면이 안 나와요</summary><p>GPU가 없거나 드라이버 문제일 때 소프트웨어 방식으로 자동 전환해요. 그래도 안 나오면 <code>문서\Kinema\logs\gui.log</code>를 이슈에 붙여 주세요. 학습은 3D 없이도 돌아요.</p></details>
+        <details><summary>학습이 너무 느려요</summary><p>학습은 CPU로 해요. 다른 프로그램이 CPU를 많이 쓰면 몇 배 느려질 수 있어요. 학습 설정에서 병렬 환경 수를 줄이거나 학습 스텝을 줄이고, 정책 재생의 "보기"를 꺼 보세요.</p></details>
+        <details><summary>기록은 어디에 저장되나요</summary><p><code>문서\Kinema</code> 폴더예요. <code>runs\</code>(학습 기록과 두뇌), <code>my_configs\</code>(내가 저장한 설정), <code>logs\</code>(로그). 폴더를 바꾸려면 환경변수 <code>KINEMA_DATA_DIR</code>을 설정해요.</p></details>
+        <details><summary>AI 조언 키는 어떻게 넣나요</summary><p>실험 노트에서 <b>AI 조언 받기</b>를 눌러 안내를 읽고 동의한 뒤 키를 입력해요. 키는 Windows 자격 증명 관리자에 저장되고 파일에는 남지 않아요.</p></details>
+      </div>
     </section>
 
     <section id="versions">
-      <span class="eyebrow">Versions</span>
-      <h2>예전 버전 받기</h2>
-      <ul id="vlist"><li class="note">목록을 불러오는 중…</li></ul>
-    </section>
-
-    <section class="final">
-      <h2>로봇 학습, 오늘부터 한 앱에서</h2>
-      <p class="sec-lead" style="margin-left:auto;margin-right:auto">개인·교육·연구 목적이라면 무료예요.</p>
-      <div class="cta"><a class="btn main" href="https://github.com/Dawnilove/Kinema/releases/latest/download/Kinema-Setup.exe">⬇ Windows용 무료 다운로드</a><a class="btn" href="#top">위로</a></div>
+      <div class="sec-head"><h2>예전 버전 받기</h2></div>
+      <ul id="vlist"><li>목록을 불러오는 중이에요.</li></ul>
     </section>
   </div>
+
+  <div class="final"><div class="wrap">
+    <div>
+      <h2>로봇 학습,<br>오늘부터 한 앱에서</h2>
+      <p>개인, 교육, 연구 목적이라면 무료예요.</p>
+    </div>
+    <div class="cta"><a class="btn" href="https://github.com/Dawnilove/Kinema/releases/latest/download/Kinema-Setup.exe">Windows용 무료 다운로드</a><a class="btn ghost" href="#top">위로</a></div>
+  </div></div>
 </main>
 
-<footer>
-  <div class="wrap">
-    <a href="https://github.com/Dawnilove/Kinema">GitHub</a> ·
-    <a href="https://github.com/Dawnilove/Kinema/releases">릴리스 노트</a> ·
-    <a href="https://github.com/Dawnilove/Kinema/issues">버그 신고</a> ·
-    <a href="https://github.com/Dawnilove/Kinema/blob/main/SECURITY.md">보안</a><br>
-    Copyright © 2026 Dawnilove · <a href="https://github.com/Dawnilove/Kinema/blob/main/LICENSE.txt">사용 허가서</a> · 소스 코드는 공개하지 않아요
-  </div>
-</footer>
+<footer><div class="wrap">
+  <a href="https://github.com/Dawnilove/Kinema">GitHub</a>
+  <a href="https://github.com/Dawnilove/Kinema/releases">릴리스 노트</a>
+  <a href="https://github.com/Dawnilove/Kinema/issues">버그 신고</a>
+  <a href="https://github.com/Dawnilove/Kinema/blob/main/SECURITY.md">보안</a>
+  <a href="https://github.com/Dawnilove/Kinema/blob/main/LICENSE.txt">사용 허가서</a>
+  <span class="copy">Copyright © 2026 Dawnilove. 소스 코드는 공개하지 않아요.</span>
+</div></footer>
 
 <script>
-// 화면 둘러보기: 모드 스위치(앱과 같은 순서)로 사진을 바꾼다
+// 화면 둘러보기: 탭을 누르면 사진과 설명을 바꾼다
 var SHOTS = [
-  ["시작", "images/project.png", "시작 화면: 틀 카드(고정 팔 · 바퀴 로봇 · 4족 보행), 최근 작업대, 이 PC", "앱을 열면 가장 먼저 보이는 화면. 틀 카드로 바로 시작해요."],
-  ["조립 1", "images/assembly.png", "조립 화면: 왼쪽 부품 카드, 가운데 3D, 오른쪽 속성", "붙일 수 있는 부품이 카드로 보이고, 누르면 바로 붙어요. 조립 검사가 학습 가능 여부를 알려 줘요."],
-  ["과제 2", "images/scene.png", "과제 화면: 과제 선택과 목표 배치 범위", "과제를 고르고, 목표가 나올 범위를 3D 상자로 정해요."],
-  ["학습 3", "images/train.png", "학습 화면: 지금 학습 중인 정책이 한 판 하는 3D 재생, 성공률 곡선, 지표 카드", "학습 중인 정책이 지금 한 판 하는 모습을 3D로 봐요. 손이 지난 길과 잔상도 보여요."],
-  ["실험 노트 4", "images/monitor.png", "실험 노트: 실험 목록, 성공률 곡선, 바뀐 설정, AI 조언", "실험을 시간순으로 보고, 두 개를 골라 비교해요. 메모와 AI 조언도 한 장에."]
+  ["images/project.png", "시작 화면: 틀 카드(고정 팔, 바퀴 로봇, 4족 보행), 최근 작업대, 이 PC", "앱을 열면 가장 먼저 보이는 화면. 틀 카드로 바로 시작해요."],
+  ["images/assembly.png", "조립 화면: 왼쪽 부품 카드, 가운데 3D, 오른쪽 속성", "붙일 수 있는 부품이 카드로 보이고, 누르면 바로 붙어요. 조립 검사가 학습 가능 여부를 알려 줘요."],
+  ["images/scene.png", "과제 화면: 과제 선택과 목표 배치 범위", "과제를 고르고, 목표가 나올 범위를 3D 상자로 정해요."],
+  ["images/train.png", "학습 화면: 지금 학습 중인 정책이 한 판 하는 3D 재생, 성공률 곡선, 지표 카드", "학습 중인 정책이 지금 한 판 하는 모습을 3D로 봐요. 손이 지난 길과 잔상도 보여요."],
+  ["images/monitor.png", "실험 노트: 실험 목록, 성공률 곡선, 바뀐 설정, AI 조언", "실험을 시간순으로 보고, 두 개를 골라 비교해요. 메모와 AI 조언도 한 장에."]
 ];
 document.querySelectorAll(".modes button").forEach(function (b) {
   b.addEventListener("click", function () {
     var s = SHOTS[+b.dataset.i];
     document.querySelectorAll(".modes button").forEach(function (x) { x.setAttribute("aria-selected", x === b ? "true" : "false"); });
     var img = document.getElementById("shot");
-    img.src = s[1]; img.alt = s[2];
-    document.getElementById("capn").textContent = s[0];
-    document.getElementById("capt").textContent = s[3];
+    img.src = s[0]; img.alt = s[1];
+    document.getElementById("capt").textContent = s[2];
   });
 });
 
-// 최신 버전 표시와 예전 버전 목록: 릴리스 목록을 읽어 만든다. 실패하면 기본 링크(Releases 페이지)가 남는다.
+// 조립대: 몸체, 관절, 다리 순서로 붙이면 학습 시작이 켜진다. 학습은 미리 정한 5판을 보여 준다 (실제 학습 아님)
+(function () {
+  var ORDER = ["body", "joint", "leg"];
+  var NAMES = { body: "몸체", joint: "관절 모듈", leg: "다리" };
+  var NEXT = { body: "이제 관절 모듈을 붙이세요.", joint: "이제 다리를 붙이세요.", leg: "조립 검사 통과. 학습 시작을 누르세요." };
+  var WHY = { joint: "관절 모듈은 몸체에 붙어요. 몸체를 먼저 붙이세요.", leg: "다리는 관절 모듈에 붙어요. 관절 모듈을 먼저 붙이세요." };
+  // 판마다 넘어지는 거리(m). null은 목표 도달. 흔들림은 판이 지날수록 줄어든다
+  var EPISODES = [{ fall: 0.3, wobble: 14 }, { fall: 0.7, wobble: 10 }, { fall: 1.3, wobble: 7 }, { fall: null, wobble: 4 }, { fall: null, wobble: 1.5 }];
+  var START_X = 90, PX_PER_M = 210, FOOT_Y = 230;
+  var reduce = matchMedia("(prefers-reduced-motion: reduce)").matches;
+  var $ = function (id) { return document.getElementById(id); };
+  var field = $("field"), status = $("status"), train = $("train"), log = $("log"), rate = $("rate"), robot = $("robot");
+  var attached = [], running = false, raf = 0, gen = 0;
+
+  function say(text, warn) { status.textContent = text; status.classList.toggle("warn", !!warn); }
+
+  function attach(part) {
+    if (running || attached.indexOf(part) >= 0) return;
+    if (ORDER[attached.length] !== part) { say(WHY[part] || "순서가 맞지 않아요.", true); return; }
+    attached.push(part);
+    $({ body: "r-body", joint: "r-joint", leg: "r-legs" }[part]).removeAttribute("hidden");
+    document.querySelector('.part[data-part="' + part + '"]').classList.add("used");
+    if (attached.length === 3) { $("ghost").setAttribute("hidden", ""); train.disabled = false; }
+    say(NAMES[part] + " 붙임. " + NEXT[part]);
+  }
+
+  function pose(x, angle, swing, tilt) {
+    robot.setAttribute("transform", "translate(" + x + " 0) rotate(" + angle + " 20 " + FOOT_Y + ")");
+    $("r-body").setAttribute("transform", "rotate(" + tilt + " 0 172)");
+    $("legA").setAttribute("x2", -10 + swing); $("legB").setAttribute("x2", 10 - swing);
+  }
+
+  function addLog(i, ep, dist) {
+    var li = document.createElement("li");
+    var ok = ep.fall === null;
+    li.className = ok ? "win" : "fall";
+    li.textContent = "판 " + (i + 1) + " " + (ok ? "성공" : "넘어짐") + " " + dist.toFixed(1) + " m";
+    log.append(li);
+    var wins = log.querySelectorAll(".win").length;
+    rate.textContent = Math.round(wins / (i + 1) * 100) + "%";
+  }
+
+  function finish() {
+    running = false; train.disabled = false; train.textContent = "다시 학습";
+    say("5판 학습 끝. 넘어지던 로봇이 4판째부터 목표에 닿았어요. 앱에서는 이 과정을 수천 판 돌려요.");
+  }
+
+  function run() {
+    if (attached.length < 3 || running) return;
+    running = true; train.disabled = true; log.textContent = ""; rate.textContent = "0%";
+    if (reduce) { // 움직임을 줄인 설정: 결과만 바로 보여 준다
+      EPISODES.forEach(function (ep, i) { addLog(i, ep, ep.fall === null ? 2 : ep.fall); });
+      pose(START_X + 2 * PX_PER_M, 0, 0, 0); finish(); return;
+    }
+    var i = 0, my = ++gen; // 분해하면 gen이 바뀌어 기다리던 다음 판이 멈춘다
+    (function episode() {
+      if (my !== gen) return;
+      if (i >= EPISODES.length) { finish(); return; }
+      var ep = EPISODES[i], goal = ep.fall === null ? 2 : ep.fall, t0 = 0, fallT0 = 0;
+      var speed = 0.9 + i * 0.15; // m/s
+      say("판 " + (i + 1) + " 걷는 중이에요.");
+      function frame(now) {
+        if (!t0) t0 = now;
+        var t = (now - t0) / 1000, d = Math.min(goal, t * speed);
+        var x = START_X + d * PX_PER_M, swing = Math.sin(t * 12) * 12;
+        var tilt = Math.sin(t * 7) * ep.wobble * 0.5;
+        if (d < goal) { pose(x, 0, swing, tilt); raf = requestAnimationFrame(frame); return; }
+        if (ep.fall === null) { pose(x, 0, 0, 0); addLog(i, ep, d); i++; setTimeout(function () { pose(START_X, 0, 0, 0); episode(); }, 500); return; }
+        if (!fallT0) fallT0 = now;
+        var k = Math.min(1, (now - fallT0) / 450);
+        pose(x, k * k * 80, swing * (1 - k), tilt);
+        if (k < 1) { raf = requestAnimationFrame(frame); return; }
+        addLog(i, ep, d); i++;
+        setTimeout(function () { pose(START_X, 0, 0, 0); episode(); }, 450);
+      }
+      raf = requestAnimationFrame(frame);
+    })();
+  }
+
+  function reset() {
+    cancelAnimationFrame(raf); gen++; running = false; attached = [];
+    ["r-body", "r-joint", "r-legs"].forEach(function (id) { $(id).setAttribute("hidden", ""); });
+    $("ghost").removeAttribute("hidden");
+    document.querySelectorAll(".part").forEach(function (p) { p.classList.remove("used"); });
+    pose(START_X, 0, 0, 0); log.textContent = ""; rate.textContent = "0%";
+    train.disabled = true; train.textContent = "학습 시작";
+    say("몸체부터 붙이세요. 카드를 끌거나 눌러도 돼요.");
+  }
+
+  // 끌기: 5px 넘게 움직이면 끌기, 아니면 누르기(키보드 Enter·Space도 click으로 온다)
+  document.querySelectorAll(".part").forEach(function (el) {
+    var sx = 0, sy = 0, dragging = false, moved = false;
+    function overField(e) { var r = field.getBoundingClientRect(); return e.clientX >= r.left && e.clientX <= r.right && e.clientY >= r.top && e.clientY <= r.bottom; }
+    el.addEventListener("pointerdown", function (e) {
+      if (running) return;
+      sx = e.clientX; sy = e.clientY; dragging = true; moved = false;
+      try { el.setPointerCapture(e.pointerId); } catch (_) {}
+    });
+    el.addEventListener("pointermove", function (e) {
+      if (!dragging) return;
+      var dx = e.clientX - sx, dy = e.clientY - sy;
+      if (!moved && Math.abs(dx) + Math.abs(dy) < 5) return;
+      moved = true; el.classList.add("dragging");
+      el.style.transform = "translate(" + dx + "px," + dy + "px)";
+      field.classList.toggle("over", overField(e));
+    });
+    function end(e, drop) {
+      if (!dragging) return;
+      dragging = false; el.classList.remove("dragging"); el.style.transform = ""; field.classList.remove("over");
+      if (moved && drop && overField(e)) attach(el.dataset.part);
+      else if (moved && drop) say("바닥 위에 놓아야 붙어요.", true);
+    }
+    el.addEventListener("pointerup", function (e) { end(e, true); });
+    el.addEventListener("pointercancel", function (e) { end(e, false); });
+    el.addEventListener("click", function () { if (!moved) attach(el.dataset.part); moved = false; });
+  });
+  train.addEventListener("click", run);
+  $("reset").addEventListener("click", reset);
+})();
+
+// 최신 버전 표시와 예전 버전 목록: 릴리스 목록을 읽어 만든다. 실패하면 Releases 링크를 보여 준다
 function link(text, href) { var a = document.createElement("a"); a.textContent = text; a.href = href; return a; }
 fetch("https://api.github.com/repos/Dawnilove/Kinema/releases?per_page=100")
   .then(function (r) { return r.ok ? r.json() : Promise.reject(); })
   .then(function (rels) {
     rels = rels.filter(function (r) { return !r.draft && !r.prerelease; });
+    if (!rels.length) return Promise.reject();
     document.getElementById("ver").textContent = "최신 버전 " + rels[0].tag_name;
     var ul = document.getElementById("vlist");
     ul.textContent = "";
@@ -365,7 +571,7 @@ fetch("https://api.github.com/repos/Dawnilove/Kinema/releases?per_page=100")
       var b = document.createElement("b");
       b.textContent = rel.tag_name;
       var d = document.createElement("span");
-      d.className = "note";
+      d.className = "when";
       d.textContent = rel.published_at.slice(0, 10);
       li.append(b, d);
       var a = rel.assets.find(function (x) { return /Setup.*\.exe$/.test(x.name); });

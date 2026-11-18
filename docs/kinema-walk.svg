@@ -1,0 +1,25 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1200 360" role="img" aria-label="Kinema: 부품을 붙이고, 걷게 가르치세요. 넘어지던 로봇이 판을 거듭해 목표 깃발에 닿는 그림">
+  <rect width="1200" height="360" fill="#121417"/>
+  <text x="64" y="110" fill="#E8EAED" font-family="IBM Plex Mono, Consolas, monospace" font-size="56" font-weight="700" letter-spacing="8">KINEMA</text>
+  <text x="64" y="170" fill="#E8EAED" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="34" font-weight="700">부품을 붙이고, 걷게 가르치세요</text>
+  <text x="64" y="212" fill="#A3ABB8" font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="22">조립, 과제, 학습, 실험 노트가 한 앱에. Windows용</text>
+  <rect x="0" y="300" width="1200" height="60" fill="#1D2128"/>
+  <!-- 판 1~3: 넘어짐. 판 4: 목표 도달 -->
+  <g transform="translate(600 0) rotate(80 20 300)" opacity=".45">
+    <line x1="0" y1="242" x2="-10" y2="300" stroke="#E8EAED" stroke-width="8" stroke-linecap="round"/><line x1="0" y1="242" x2="10" y2="300" stroke="#C9CED6" stroke-width="8" stroke-linecap="round"/>
+    <rect x="-40" y="198" width="80" height="38" fill="#FF5A1F"/><circle cx="0" cy="242" r="9" fill="#121417" stroke="#E8EAED" stroke-width="4"/>
+  </g>
+  <g transform="translate(760 0) rotate(80 20 300)" opacity=".65">
+    <line x1="0" y1="242" x2="-10" y2="300" stroke="#E8EAED" stroke-width="8" stroke-linecap="round"/><line x1="0" y1="242" x2="10" y2="300" stroke="#C9CED6" stroke-width="8" stroke-linecap="round"/>
+    <rect x="-40" y="198" width="80" height="38" fill="#FF5A1F"/><circle cx="0" cy="242" r="9" fill="#121417" stroke="#E8EAED" stroke-width="4"/>
+  </g>
+  <g transform="translate(1040 0)">
+    <line x1="0" y1="242" x2="-16" y2="300" stroke="#E8EAED" stroke-width="8" stroke-linecap="round"/><line x1="0" y1="242" x2="16" y2="300" stroke="#C9CED6" stroke-width="8" stroke-linecap="round"/>
+    <rect x="-40" y="198" width="80" height="38" fill="#FF5A1F"/><circle cx="0" cy="242" r="9" fill="#121417" stroke="#E8EAED" stroke-width="4"/>
+  </g>
+  <rect x="1110" y="190" width="4" height="110" fill="#A3ABB8"/>
+  <path d="M1114 190h34l-10 12 10 12h-34z" fill="#FF5A1F"/>
+  <g font-family="Noto Sans KR, Malgun Gothic, sans-serif" font-size="18" fill="#A3ABB8">
+    <text x="640" y="336">판 1 넘어짐</text><text x="800" y="336">판 3 넘어짐</text><text x="990" y="336" fill="#7FE0A9">판 4 성공</text>
+  </g>
+</svg>
